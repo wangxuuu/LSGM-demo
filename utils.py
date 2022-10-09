@@ -68,3 +68,31 @@ def plot_fig(X, Y, d=6):
             axs[u,v].scatter(X[:,u], Y[:,v])
     return fig
 
+class Cluster2DataSet(torch.utils.data.Dataset):
+    def __init__(self, dist1, dist2, shape = (2), probability=0.2, total_len = 1000000):
+        self.dist1_mean, self.dist1_var = dist1[0], dist1[1]
+        self.dist2_mean, self.dist2_var = dist2[0], dist2[1]
+        self.shape = shape
+        self.probability = probability
+        self.total_len = total_len
+
+    @property
+    def get_probability(self):
+        return torch.rand(1) < self.probability
+
+    @property
+    def _sampling_1(self):
+        return self.dist1_mean + torch.randn(self.shape) * self.dist1_var
+
+    @property
+    def _sampling_2(self):
+        return self.dist2_mean + torch.randn(self.shape) * self.dist2_var
+
+    def __len__(self):
+        return self.total_len
+
+    def __getitem__(self, idx):
+        data = self._sampling_1 if self.get_probability else self._sampling_2
+
+        return data
+

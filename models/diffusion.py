@@ -3,6 +3,9 @@ import torch.nn as nn
 
 class MLPDiffusion(nn.Module):
     def __init__(self,n_steps,num_units=128):
+        '''
+        num_units: hidden size
+        '''
         super(MLPDiffusion,self).__init__()
 
         self.linears = nn.ModuleList(
