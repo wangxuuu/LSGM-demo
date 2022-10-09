@@ -4,6 +4,32 @@ import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 
+## plot the point data
+def scatter(sample, only_final, scatter_range = [-10, 10]):
+    # clear_output()
+    if only_final:
+        scatter = sample.detach().cpu().numpy()
+        scatter_x, scatter_y = scatter[:,0], scatter[:,1]
+        plt.figure(figsize=(7, 7))
+
+        plt.xlim(scatter_range)
+        plt.ylim(scatter_range)
+        plt.rc('axes', unicode_minus=False)
+
+        plt.scatter(scatter_x, scatter_y, s=5)
+        # plt.show()
+
+    else:
+        step_size = sample.size(0)
+        fig, axs = plt.subplots(1, step_size, figsize=(step_size * 4, 4), constrained_layout = True)
+        for i in range(step_size):
+            scatter = sample[i].detach().cpu().numpy()
+            scatter_x, scatter_y = scatter[:,0], scatter[:,1]
+            axs[i].scatter(scatter_x, scatter_y, s=5)
+            axs[i].set_xlim(scatter_range)
+            axs[i].set_ylim(scatter_range)
+        # plt.show()
+
 # VAE model
 class VAE(nn.Module):
     def __init__(self, input_size=20, h_dim=100, z_dim=10):
