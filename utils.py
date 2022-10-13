@@ -32,8 +32,9 @@ def scatter(sample, only_final, scatter_range = [-10, 10]):
 
 # VAE model
 class VAE(nn.Module):
-    def __init__(self, input_size=20, h_dim=100, z_dim=10):
+    def __init__(self, input_size=20, h_dim=100, z_dim=10, type='ce'):
         super(VAE, self).__init__()
+        self.type = type
         self.fc1 = nn.Linear(input_size, h_dim)
         self.fc2 = nn.Linear(h_dim, z_dim)
         self.fc3 = nn.Linear(h_dim, z_dim)
@@ -49,15 +50,17 @@ class VAE(nn.Module):
         eps = torch.randn_like(std)
         return mu + eps * std
 
-    def decode(self, z):
+    def decode(self, z, type='ce'):
         h = F.relu(self.fc4(z))
-        # return torch.sigmoid(self.fc5(h))
-        return self.fc5(h)
+        if type == 'ce':
+            return torch.sigmoid(self.fc5(h))
+        elif type == 'mse':
+            return self.fc5(h)
 
     def forward(self, x):
         mu, log_var = self.encode(x)
         z = self.reparameterize(mu, log_var)
-        x_reconst = self.decode(z)
+        x_reconst = self.decode(z, self.type)
         return x_reconst, mu, log_var
 
 class GetLoader(torch.utils.data.Dataset):
