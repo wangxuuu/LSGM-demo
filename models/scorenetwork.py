@@ -5,7 +5,7 @@ import torch.nn as nn
 
 
 class SN_Model(nn.Module):
-    def __init__(self, device, n_steps, sigma_min, sigma_max, p=0.5):
+    def __init__(self, device, n_steps, sigma_min, sigma_max, dim, p=0.5):
         '''
         Score Network.
 
@@ -19,7 +19,7 @@ class SN_Model(nn.Module):
         self.sigmas = torch.exp(torch.linspace(start=math.log(sigma_max), end=math.log(sigma_min), steps = n_steps)).to(device = device)
 
         self.linear_model1 = nn.Sequential(
-            nn.Linear(2, 256),
+            nn.Linear(dim, 256),
             nn.Dropout(p),
             nn.GELU(),
         )
@@ -35,7 +35,7 @@ class SN_Model(nn.Module):
             nn.Dropout(p),
             nn.GELU(),
 
-            nn.Linear(512, 2),
+            nn.Linear(512, dim),
         )
 
         self.to(device = self.device)
@@ -132,11 +132,11 @@ class AnnealedLangevinDynamic():
             yield x
 
     @torch.no_grad()
-    def sampling(self, sampling_number, only_final=False):
+    def sampling(self, sampling_number, dim, only_final=False):
         '''
-        only_final : If True, return is an only output of final schedule step 
+        only_final : If True, return is an only output of final schedule step
         '''
-        sample = (torch.rand([sampling_number,2]).to(device = self.device) - 0.5)*2
+        sample = (torch.rand([sampling_number,dim]).to(device = self.device) - 0.5)*2
         sampling_list = []
 
         final = None
