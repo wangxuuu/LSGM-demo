@@ -54,7 +54,7 @@ class SN_Model(nn.Module):
         target = target.view(target.shape[0], -1)
         scores = scores.view(scores.shape[0], -1)
 
- 
+
         losses = torch.square(scores - target).mean(dim=-1) * sigma.squeeze() ** 2
         return losses.mean(dim=0)
 
@@ -147,31 +147,3 @@ class AnnealedLangevinDynamic():
 
 
         return final if only_final else torch.stack(sampling_list)
-
-#===================== New Implementation ==================#
-class ScoreNet(nn.Module):
-    def __init__(self, marginal_prob_std, drop_p, dim, device):
-        super().__init__()
-        self.device = device
-        self.marginal_prob_std = marginal_prob_std
-        self.linear_model1 = nn.Sequential(
-            nn.Linear(dim, 256),
-            nn.Dropout(drop_p),
-            nn.GELU(),
-        )
-        # Condition sigmas
-        self.embedding_layer = nn.Embedding(n_steps, 256)
-
-        self.linear_model2 = nn.Sequential(
-            nn.Linear(256, 512),
-            nn.Dropout(drop_p),
-            nn.GELU(),
-
-            nn.Linear(512, 512),
-            nn.Dropout(drop_p),
-            nn.GELU(),
-
-            nn.Linear(512, dim),
-        )
-
-        self.to(device = self.device)
