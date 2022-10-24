@@ -132,11 +132,12 @@ class AnnealedLangevinDynamic():
             yield x
 
     @torch.no_grad()
-    def sampling(self, sampling_number, dim, only_final=False):
+    def sampling(self, sampling_number, dim, sample=None, only_final=False):
         '''
         only_final : If True, return is an only output of final schedule step
         '''
-        sample = (torch.rand([sampling_number,dim]).to(device = self.device) - 0.5)*2
+        if sample is None:
+            sample = (torch.rand([sampling_number,dim]).to(device = self.device) - 0.5)*2
         sampling_list = []
 
         final = None
@@ -147,3 +148,21 @@ class AnnealedLangevinDynamic():
 
 
         return final if only_final else torch.stack(sampling_list)
+
+# the forward process in SN_model
+@torch.no_grad()
+def forward_proc(x,
+                sigma_min=0.001,
+                sigma_max=10,
+                n_steps=10,
+                device='cpu',
+                only_final=True):
+    marginal_prob_std = torch.exp(torch.linspace(start=math.log(sigma_max), end=math.log(sigma_min), steps = n_steps)).to(device = device)
+    sampling_list = []
+    # time_steps = torch.linspace(eps, 1., num_steps, device=device)
+    if only_final:
+        return x + marginal_prob_std[-1] * torch.randn_like(x)
+    else:
+        for time_step in range(n_steps):
+            sampling_list.append(x + marginal_prob_std[time_step] * torch.randn_like(x))
+        return torch.stack(sampling_list)
