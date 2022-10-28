@@ -298,7 +298,8 @@ def Euler_Maruyama_sampler(score_model,
                            eps=1e-3,
                            start_t=1.,
                            save_times=8,
-                           only_final=True):
+                           only_final=True,
+                           init_x=None):
     """Generate samples from score-based models with the Euler-Maruyama solver.
 
     Args:
@@ -318,8 +319,9 @@ def Euler_Maruyama_sampler(score_model,
     sampling_list = []
     t = torch.ones(batch_size, device=device)
     # set t=1 to approximate the marginal distribution, init_x
-    init_x = torch.randn(batch_size, dim, device=device) \
-        * marginal_prob_std(t)[:, None]
+    if init_x is None:
+        init_x = torch.randn(batch_size, dim, device=device) \
+            * marginal_prob_std(t)[:, None]
     time_steps = torch.linspace(start_t, eps, num_steps, device=device)
     step_size = time_steps[0] - time_steps[1]
     x = init_x
