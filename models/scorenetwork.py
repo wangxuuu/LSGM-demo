@@ -325,7 +325,7 @@ def Euler_Maruyama_sampler(score_model,
     time_steps = torch.linspace(start_t, eps, num_steps, device=device)
     step_size = time_steps[0] - time_steps[1]
     x = init_x
-    i = 1
+    i = 0
     with torch.no_grad():
         for time_step in time_steps:      
             batch_time_step = torch.ones(batch_size, device=device) * time_step
