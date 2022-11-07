@@ -171,7 +171,7 @@ class SN_Model(nn.Module):
         embed = self.act(self.embed(t))
         output = self.linear_model1(x)
         output = self.linear_model2(output + self.embedding_layer(embed))
-        return output
+        return output/self.marginal_prob_std(t)[:, None]
         
     def loss(self, x, eps=1e-5):
         """The loss function for training score-based generative models.
@@ -189,7 +189,7 @@ class SN_Model(nn.Module):
         std = self.marginal_prob_std(random_t)
         perturbed_x = x + z * std[:, None]
         score = self.forward(perturbed_x, random_t)
-        loss = torch.mean(torch.sum((score * std[:, None] + z)**2))
+        loss = torch.mean(torch.sum((score * std[:, None] + z).reshape(x.shape[0], -1)**2, dim=1))
         return loss
 
 
