@@ -372,7 +372,7 @@ def ode_sampler(score_model,
     t = torch.ones(batch_size, device=device)
     # Create the latent code
     if z is None:
-        init_x = torch.randn(batch_size, 1, 28, 28, device=device) \
+        init_x = torch.randn(batch_size, 20, device=device) \
             * marginal_prob_std(t)[:, None, None, None]
     else:
         init_x = z
