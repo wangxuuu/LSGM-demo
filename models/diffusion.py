@@ -72,7 +72,7 @@ def diffusion_loss_fn(model,x_0,alphas_bar_sqrt,one_minus_alphas_bar_sqrt,n_step
 
 def p_sample(model,x,t,betas,one_minus_alphas_bar_sqrt):
     """从x[T]采样t时刻的重构值"""
-    t = torch.tensor([t])
+    t = torch.Tensor([t])
     coeff = betas[t] / one_minus_alphas_bar_sqrt[t]
     eps_theta = model(x,t)
     mean = (1/(1-betas[t]).sqrt())*(x-(coeff*eps_theta))
@@ -103,20 +103,20 @@ def ddim_sample(model, num_steps=100, batch_size=64, dim=20, x_T=None):
         for beta in betas:
             alpha *= 1 - beta
             result.append(alpha)
-        return np.array(result, dtype=np.float64)
+        return torch.Tensor(result)
 
     def sample_q(x_0, ts, epsilon=None):
         """
         Sample from q(x_t | x_0) for a batch of x_0.
         """
         if epsilon is None:
-            epsilon = np.random.normal(size=x_0.shape)
+            epsilon = torch.randn(size=x_0.shape)
         alphas = alphas_for_ts(ts, x_0.shape)
-        return np.sqrt(alphas) * x_0 + np.sqrt(1 - alphas) * epsilon
+        return torch.sqrt(alphas) * x_0 + torch.sqrt(1 - alphas) * epsilon
 
     def predict_x0(x_t, ts, epsilon_prediction):
         alphas = alphas_for_ts(ts, x_t.shape)
-        return (x_t - np.sqrt(1 - alphas) * epsilon_prediction) / np.sqrt(alphas)
+        return (x_t - torch.sqrt(1 - alphas) * epsilon_prediction) / torch.sqrt(alphas)
 
     def ddim_previous(x_t, ts, epsilon_prediction):
         """
@@ -138,11 +138,11 @@ def ddim_sample(model, num_steps=100, batch_size=64, dim=20, x_T=None):
 
     alpha = create_alpha_schedule(num_steps)
     x_t = x_T
-    t_iter = range(1, num_steps + 1)[::-1]
+    t_iter = range(1, num_steps)[::-1]
 
     for t in t_iter:
-        ts = np.array([t] * x_T.shape[0])
+        ts = torch.tensor([t] * x_T.shape[0])
         # alphas = alphas_for_ts(ts)
-        x_t = ddim_previous(x_t, ts, model(x_t, torch.tensor(ts)))
+        x_t = ddim_previous(x_t, ts, model(x_t, ts))
     return x_t
 
