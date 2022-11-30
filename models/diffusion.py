@@ -50,7 +50,7 @@ def diffusion_loss_fn(model,x_0,alphas_bar_sqrt,one_minus_alphas_bar_sqrt,n_step
     #对一个batchsize样本生成随机的时刻t
     t = torch.randint(0,n_steps,size=(batch_size//2,))
     t = torch.cat([t,n_steps-1-t],dim=0)
-    t = t.unsqueeze(-1)
+    t = t.unsqueeze(-1).to(device)
 
     #x0的系数
     a = alphas_bar_sqrt[t]
@@ -103,7 +103,7 @@ def ddim_sample(model, num_steps=100, batch_size=64, dim=20, x_T=None):
         for beta in betas:
             alpha *= 1 - beta
             result.append(alpha)
-        return torch.Tensor(result)
+        return torch.Tensor(result).to(device)
 
     def sample_q(x_0, ts, epsilon=None):
         """
@@ -141,7 +141,7 @@ def ddim_sample(model, num_steps=100, batch_size=64, dim=20, x_T=None):
     t_iter = range(1, num_steps)[::-1]
 
     for t in t_iter:
-        ts = torch.tensor([t] * x_T.shape[0])
+        ts = torch.tensor([t] * x_T.shape[0]).to(device)
         # alphas = alphas_for_ts(ts)
         x_t = ddim_previous(x_t, ts, model(x_t, ts))
     return x_t
