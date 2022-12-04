@@ -7,12 +7,12 @@ import torch.nn as nn
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class MLPDiffusion(nn.Module):
-    def __init__(self,n_steps,dim=20, num_units=128):
+    def __init__(self,n_steps, dim=20, num_units=128, num_classes=None):
         '''
         num_units: hidden size
         '''
         super(MLPDiffusion,self).__init__()
-
+        self.num_classes = num_classes
         self.linears = nn.ModuleList(
             [
                 nn.Linear(dim,num_units),
@@ -31,19 +31,29 @@ class MLPDiffusion(nn.Module):
                 nn.Embedding(n_steps,num_units),
             ]
         )
-    def forward(self,x,t):
+        if self.num_classes is not None:
+            self.label_emb = nn.Embedding(num_classes, num_units)
+
+    def forward(self,x,t, y=None):
 #         x = x_0
+        # conditioning on label
+        if self.num_classes is not None:
+            assert y.shape == (x.shape[0],)
+            class_emb = self.label_emb(y)
+
         for idx,embedding_layer in enumerate(self.step_embeddings):
-            t_embedding = embedding_layer(t)
+            embedding = embedding_layer(t)
+            if self.num_classes is not None:
+                embedding = embedding + class_emb
             x = self.linears[2*idx](x)
-            x += t_embedding
+            x += embedding
             x = self.linears[2*idx+1](x)
 
         x = self.linears[-1](x)
 
         return x
 
-def diffusion_loss_fn(model,x_0,alphas_bar_sqrt,one_minus_alphas_bar_sqrt,n_steps):
+def diffusion_loss_fn(model,x_0,alphas_bar_sqrt,one_minus_alphas_bar_sqrt,n_steps, y=None):
     """对任意时刻t进行采样计算loss"""
     batch_size = x_0.shape[0]
 
@@ -65,7 +75,7 @@ def diffusion_loss_fn(model,x_0,alphas_bar_sqrt,one_minus_alphas_bar_sqrt,n_step
     x = x_0*a+e*aml
 
     #送入模型，得到t时刻的随机噪声预测值
-    output = model(x,t.squeeze(-1))
+    output = model(x,t.squeeze(-1),y)
 
     #与真实噪声一起计算误差，求平均值
     return (e - output).square().mean()
@@ -91,7 +101,7 @@ def p_sample_loop(model,shape,n_steps,betas,one_minus_alphas_bar_sqrt):
     return x_seq
 
 ## DDIM sampling
-def ddim_sample(model, num_steps=100, batch_size=64, dim=20, x_T=None):
+def ddim_sample(model, num_steps=100, batch_size=64, dim=20, x_T=None, y=None):
     """
     Sample x_0 from x_t using DDIM, assuming a method on predictor called
     predict_epsilon(x_t, alphas).
@@ -143,6 +153,6 @@ def ddim_sample(model, num_steps=100, batch_size=64, dim=20, x_T=None):
     for t in t_iter:
         ts = torch.tensor([t] * x_T.shape[0]).to(device)
         # alphas = alphas_for_ts(ts)
-        x_t = ddim_previous(x_t, ts, model(x_t, ts))
+        x_t = ddim_previous(x_t, ts, model(x_t, ts, y))
     return x_t
 
