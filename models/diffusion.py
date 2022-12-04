@@ -37,13 +37,13 @@ class MLPDiffusion(nn.Module):
     def forward(self,x,t, y=None):
 #         x = x_0
         # conditioning on label
-        if self.num_classes is not None:
+        if y is not None:
             assert y.shape == (x.shape[0],)
             class_emb = self.label_emb(y)
 
         for idx,embedding_layer in enumerate(self.step_embeddings):
             embedding = embedding_layer(t)
-            if self.num_classes is not None:
+            if y is not None:
                 embedding = embedding + class_emb
             x = self.linears[2*idx](x)
             x += embedding

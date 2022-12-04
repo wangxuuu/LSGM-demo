@@ -138,11 +138,14 @@ def diffusion_coeff(t, sigma):
 # diffusion_coeff_fn = functools.partial(diffusion_coeff, sigma=sigma)
 
 class SN_Model(nn.Module):
-    def __init__(self, marginal_prob_std, embed_dim, dim, drop_p=0.3, device='cpu'):
+    def __init__(self, marginal_prob_std, embed_dim, dim, drop_p=0.3, num_classes=None, device='cpu'):
         super().__init__()
         self.device = device
         self.marginal_prob_std = marginal_prob_std
         self.act = lambda x: x * torch.sigmoid(x)
+        self.num_classes = num_classes
+        if self.num_classes is not None:
+            self.label_emb = nn.Embedding(num_classes, embed_dim)
         self.embed = nn.Sequential(GaussianFourierProjection(embed_dim=embed_dim), nn.Linear(embed_dim, embed_dim))
         self.embedding_layer = Dense(embed_dim, 256)
         self.linear_model1 = nn.Sequential(
@@ -167,13 +170,15 @@ class SN_Model(nn.Module):
 
         self.to(device = self.device)
 
-    def forward(self, x, t):
+    def forward(self, x, t, y=None):
         embed = self.act(self.embed(t))
+        if y is not None:
+            embed += self.label_emb(y)
         output = self.linear_model1(x)
         output = self.linear_model2(output + self.embedding_layer(embed))
         return output/self.marginal_prob_std(t)[:, None]
         
-    def loss(self, x, eps=1e-5):
+    def loss(self, x, y=None, eps=1e-5):
         """The loss function for training score-based generative models.
 
         Args:
@@ -188,7 +193,7 @@ class SN_Model(nn.Module):
         z = torch.randn_like(x)
         std = self.marginal_prob_std(random_t)
         perturbed_x = x + z * std[:, None]
-        score = self.forward(perturbed_x, random_t)
+        score = self.forward(perturbed_x, random_t, y)
         loss = torch.mean(torch.sum((score * std[:, None] + z).reshape(x.shape[0], -1)**2, dim=1))
         return loss
 
@@ -299,7 +304,8 @@ def Euler_Maruyama_sampler(score_model,
                            start_t=1.,
                            save_times=8,
                            only_final=True,
-                           init_x=None):
+                           init_x=None,
+                           y=None):
     """Generate samples from score-based models with the Euler-Maruyama solver.
 
     Args:
@@ -330,7 +336,7 @@ def Euler_Maruyama_sampler(score_model,
         for time_step in time_steps:      
             batch_time_step = torch.ones(batch_size, device=device) * time_step
             g = diffusion_coeff(batch_time_step)
-            mean_x = x + (g**2)[:, None] * score_model(x, batch_time_step) * step_size
+            mean_x = x + (g**2)[:, None] * score_model(x, batch_time_step, y) * step_size
             x = mean_x + torch.sqrt(step_size) * g[:, None] * torch.randn_like(x)  
             if not only_final and i%(num_steps//save_times)==0:
                 sampling_list.append(x)
@@ -352,6 +358,7 @@ def ode_sampler(score_model,
                 rtol=error_tolerance,
                 device='cuda',
                 z=None,
+                y=None,
                 eps=1e-3,
                 start_t=1.):
     """Generate samples from score-based models with black-box ODE solvers.
@@ -384,7 +391,7 @@ def ode_sampler(score_model,
         sample = torch.tensor(sample, device=device, dtype=torch.float32).reshape(shape)
         time_steps = torch.tensor(time_steps, device=device, dtype=torch.float32).reshape((sample.shape[0], ))
         with torch.no_grad():
-            score = score_model(sample, time_steps)
+            score = score_model(sample, time_steps, y)
         return score.cpu().numpy().reshape((-1,)).astype(np.float64)
 
     def ode_func(t, x):
