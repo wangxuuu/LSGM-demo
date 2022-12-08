@@ -14,7 +14,7 @@ class CnnVAE(nn.Module):
                  gamma:float = 1000.,
                  max_capacity: int = 25,
                  Capacity_max_iter: int = 1e5,
-                 loss_type:str = 'B',
+                 loss_type:str = 'BCE',
                  **kwargs) -> None:
         super(CnnVAE, self).__init__()
 
@@ -67,6 +67,11 @@ class CnnVAE(nn.Module):
 
         self.decoder = nn.Sequential(*modules)
 
+        if self.loss_type == 'ce':
+            self.final_activation = nn.Sigmoid()
+        else:
+            self.final_activation = nn.Tanh()
+
         self.final_layer = nn.Sequential(
                             nn.ConvTranspose2d(hidden_dims[-1],
                                                hidden_dims[-1],
@@ -78,7 +83,7 @@ class CnnVAE(nn.Module):
                             nn.LeakyReLU(),
                             nn.Conv2d(hidden_dims[-1], out_channels= 3,
                                       kernel_size= 3, padding= 1),
-                            nn.Sigmoid())
+                            self.final_activation)
 
     def encode(self, input: Tensor) -> list:
         """
@@ -122,27 +127,27 @@ class CnnVAE(nn.Module):
         return  [self.decode(z), input, mu, log_var]
 
     def loss_function(self,
-                      *args,
-                      **kwargs) -> dict:
+                      recons,
+                      input,
+                      mu,
+                      log_var,
+                      kld_weight) -> dict:
         self.num_iter += 1
-        recons = args[0]
-        input = args[1]
-        mu = args[2]
-        log_var = args[3]
-        kld_weight = kwargs['M_N']  # Account for the minibatch samples from the dataset
-
-        recons_loss =F.mse_loss(recons, input)
+        # recons = args[0]
+        # input = args[1]
+        # mu = args[2]
+        # log_var = args[3]
+        # kld_weight = kwargs['M_N']  # Account for the minibatch samples from the dataset
+        if self.loss_type == 'ce':
+            recons_loss = F.binary_cross_entropy(recons, input, reduction='sum')
+        elif self.loss_type == 'mse':
+            recons_loss = F.mse_loss(recons, input)
+        else:
+            raise ValueError('Undefined loss type.')
 
         kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
 
-        if self.loss_type == 'H': # https://openreview.net/forum?id=Sy2fzU9gl
-            loss = recons_loss + self.beta * kld_weight * kld_loss
-        elif self.loss_type == 'B': # https://arxiv.org/pdf/1804.03599.pdf
-            self.C_max = self.C_max.to(input.device)
-            C = torch.clamp(self.C_max/self.C_stop_iter * self.num_iter, 0, self.C_max.data[0])
-            loss = recons_loss + self.gamma * kld_weight* (kld_loss - C).abs()
-        else:
-            raise ValueError('Undefined loss type.')
+        loss = recons_loss + self.beta * kld_weight * kld_loss
 
         return {'loss': loss, 'Reconstruction_Loss':recons_loss, 'KLD':kld_loss}
 

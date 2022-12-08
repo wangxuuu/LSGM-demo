@@ -35,3 +35,14 @@ where $c$ is a constant and $t\sim U[0,1]$.
 ## References
 [1] Kingma D P, Welling M. Auto-encoding variational bayes[J]. arXiv preprint arXiv:1312.6114, 2013.
 [2] Vahdat A, Kreis K, Kautz J. Score-based generative modeling in latent space[J]. Advances in Neural Information Processing Systems, 2021, 34: 11287-11302.
+
+## Codes
+
+- We apply the conditional diffusion model to the latent space of VAE. 
+
+- There are many different settings to train the model, i.e. 
+  - Dataset: CIFAR10; MNIST
+  - Encoder & decoder : MLP; CNN
+  - whether to use the conditional diffusion model
+  - diffusion models: Score-based diffusion model; DDPM/DDIM
+  - the distribution of the latent variable: Gaussian; delta function (deterministic latent variable)

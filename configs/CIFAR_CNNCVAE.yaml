@@ -1,0 +1,45 @@
+model_params:
+  name: 'CnnVAE'
+  diff_name: 'SN_Model'
+  in_channels: 3
+  latent_dim: 128
+  loss_type: 'ce'
+  gamma: 10.0
+  max_capacity: 25
+  Capacity_max_iter: 10000
+
+data_params:
+  dataset: CIFAR10
+  data_path: "../../Data/cifar10/"
+  train_batch_size: 64
+  val_batch_size:  64
+  patch_size: 64
+  num_workers: 4
+  
+exp_params:
+  num_classes: 10
+  LR: 0.005
+  weight_decay: 0.0
+  scheduler_gamma: 0.95
+  kld_weight: 0.00025
+  manual_seed: 1265
+  sigma: 5.0
+  in_channels: 3 # image channels
+  latent_dim: 128
+  drop_p: 0.3
+  embed_dim: 20 # embedding dimension of diffsion model
+  joint_train: True
+  cond: True
+
+
+
+trainer_params:
+  gpus: "0"
+  max_epochs: 100
+
+logging_params:
+  save_dir: "../logs/"
+  model_dir: '../checkpoints/'
+  sample_dir: "../results/"
+  manual_seed: 1265
+  name: 'CIFAR_CNNCVAE'

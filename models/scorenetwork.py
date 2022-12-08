@@ -5,7 +5,7 @@ import torch.nn as nn
 import functools
 import numpy as np
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # class SN_Model(nn.Module):
 #     def __init__(self, device, n_steps, sigma_min, sigma_max, dim, p=0.5):
@@ -131,7 +131,7 @@ def diffusion_coeff(t, sigma):
     Returns:
         The vector of diffusion coefficients.
     """
-    return torch.tensor(sigma**t, device=device)
+    return torch.tensor(sigma**t)
 
 # sigma =  25.0#@param {'type':'number'}
 # marginal_prob_std_fn = functools.partial(marginal_prob_std, sigma=sigma)
@@ -168,7 +168,7 @@ class SN_Model(nn.Module):
             nn.Linear(512, dim),
         )
 
-        self.to(device = self.device)
+        self.to(device)
 
     def forward(self, x, t, y=None):
         embed = self.act(self.embed(t))
@@ -335,7 +335,7 @@ def Euler_Maruyama_sampler(score_model,
     with torch.no_grad():
         for time_step in time_steps:      
             batch_time_step = torch.ones(batch_size, device=device) * time_step
-            g = diffusion_coeff(batch_time_step)
+            g = diffusion_coeff(batch_time_step).to(device)
             mean_x = x + (g**2)[:, None] * score_model(x, batch_time_step, y) * step_size
             x = mean_x + torch.sqrt(step_size) * g[:, None] * torch.randn_like(x)  
             if not only_final and i%(num_steps//save_times)==0:

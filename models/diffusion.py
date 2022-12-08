@@ -7,11 +7,12 @@ import torch.nn as nn
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class MLPDiffusion(nn.Module):
-    def __init__(self,n_steps, dim=20, num_units=128, num_classes=None):
+    def __init__(self,n_steps, dim=20, num_units=128, num_classes=None, device='cpu'):
         '''
         num_units: hidden size
         '''
         super(MLPDiffusion,self).__init__()
+        self.device = device
         self.num_classes = num_classes
         self.linears = nn.ModuleList(
             [
@@ -33,6 +34,8 @@ class MLPDiffusion(nn.Module):
         )
         if self.num_classes is not None:
             self.label_emb = nn.Embedding(num_classes, num_units)
+        
+        self.to(device)
 
     def forward(self,x,t, y=None):
 #         x = x_0
@@ -60,7 +63,7 @@ def diffusion_loss_fn(model,x_0,alphas_bar_sqrt,one_minus_alphas_bar_sqrt,n_step
     #对一个batchsize样本生成随机的时刻t
     t = torch.randint(0,n_steps,size=(batch_size//2,))
     t = torch.cat([t,n_steps-1-t],dim=0)
-    t = t.unsqueeze(-1).to(device)
+    t = t.unsqueeze(-1).to(device=x_0.device)
 
     #x0的系数
     a = alphas_bar_sqrt[t]
