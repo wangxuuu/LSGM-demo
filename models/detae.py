@@ -112,9 +112,9 @@ class DetAE(nn.Module):
                       input) -> dict:
         self.num_iter += 1
 
-        if self.loss_type == 'BCE':
+        if self.loss_type == 'ce':
             recons_loss = F.binary_cross_entropy(recons, input, size_average=False)
-        elif self.loss_type == 'MSE':
+        elif self.loss_type == 'mse':
             recons_loss =F.mse_loss(recons, input)
 
         return {'Reconstruction_Loss':recons_loss}
