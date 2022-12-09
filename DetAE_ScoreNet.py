@@ -78,11 +78,11 @@ marginal_prob_std_fn = functools.partial(marginal_prob_std, sigma=sigma)
 diffusion_coeff_fn = functools.partial(diffusion_coeff, sigma=sigma)
 
 
-vae = vae_models[config['model_params']['name']](in_channels=3, latent_dim=config['exp_params']['latent_dim'], loss_type=config['model_params']['loss_type']).to(device)
+vae = vae_models[config['model_params']['name']](in_channels=3, latent_dim=config['model_params']['latent_dim'], hidden_dims=config['model_params']['hidden_dims'], loss_type=config['model_params']['loss_type']).to(device)
 vae_optimizer = torch.optim.Adam(vae.parameters(), lr=config['exp_params']['LR'])
 
 # sn = SN_Model(device, n_steps, sigma_min, sigma_max, dim=z_dim, p = 0.3)
-sn = diffusion_models[config['model_params']['diff_name']](marginal_prob_std=marginal_prob_std_fn, embed_dim=config['exp_params']['embed_dim'], dim=config['exp_params']['latent_dim'], drop_p=config['exp_params']['drop_p'], num_classes=config['exp_params']['num_classes'], device=device)
+sn = diffusion_models[config['model_params']['diff_name']](marginal_prob_std=marginal_prob_std_fn, embed_dim=config['exp_params']['embed_dim'], dim=config['model_params']['latent_dim'], drop_p=config['exp_params']['drop_p'], num_classes=config['exp_params']['num_classes'], device=device)
 sn_optim = torch.optim.Adam(sn.parameters(), lr = config['exp_params']['LR'])
 # dynamic = AnnealedLangevinDynamic(sigma_min, sigma_max, n_steps, annealed_step, sn, device, eps=eps)
 
@@ -114,23 +114,17 @@ for epoch in range(config['trainer_params']['max_epochs']):
         else:
             #============= First Stage: Update VAE ==============#
             # Forward pass
-            x_reconst, _, mu, log_var = vae(x)
+            x_reconst, _, z = vae(x)
             # Compute reconstruction loss and kl divergence
-            reconst_loss = F.mse_loss(x_reconst, x)
-            # kl_div = - 0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
-            kl_div = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
+            vae_losses = vae.loss_function(x_reconst, x)
+            reconst_loss = vae_losses['Reconstruction_Loss']
             
-            # Backprop and optimize
-            vae_loss = reconst_loss + kl_div
             vae_optimizer.zero_grad()
-            vae_loss.backward()
+            reconst_loss.backward()
             vae_optimizer.step()
 
             #============= Second Stage: Update SN ==============#
-            mu, log_var = vae.encode(x)
-            z = vae.reparameterize(mu, log_var)
-
-            loss_sn = sn.loss(z)
+            loss_sn = sn.loss(z.detach())
             vae_optimizer.zero_grad()
             sn_optim.zero_grad()
             loss_sn.backward()
@@ -151,9 +145,9 @@ for epoch in range(config['trainer_params']['max_epochs']):
         # z_ = forward_proc(z, sigma_min, sigma_max, n_steps, device=device, only_final=True)
         # sample = dynamic.sampling(x.shape[0], z_dim, sample=z_, only_final=True)
         if config['exp_params']['cond']:
-            sample = Euler_Maruyama_sampler(sn, marginal_prob_std_fn, diffusion_coeff_fn, dim=config['exp_params']['latent_dim'], batch_size=x.shape[0], num_steps=500, device=device, y=y)
+            sample = Euler_Maruyama_sampler(sn, marginal_prob_std_fn, diffusion_coeff_fn, dim=config['model_params']['latent_dim'], batch_size=x.shape[0], num_steps=500, device=device, y=y)
         else:
-            sample = Euler_Maruyama_sampler(sn, marginal_prob_std_fn, diffusion_coeff_fn, dim=config['exp_params']['latent_dim'], batch_size=x.shape[0], num_steps=500, device=device)
+            sample = Euler_Maruyama_sampler(sn, marginal_prob_std_fn, diffusion_coeff_fn, dim=config['model_params']['latent_dim'], batch_size=x.shape[0], num_steps=500, device=device)
 
         # sample = dynamic.sampling(x.shape[0], z_dim, only_final=True)
         out = vae.decode(sample)

@@ -28,7 +28,7 @@ class DetAE(nn.Module):
         modules = []
         if hidden_dims is None:
             hidden_dims = [32, 64, 128, 256, 512]
-
+        self.hidden_dims = hidden_dims
         # Build Encoder
         for h_dim in hidden_dims:
             modules.append(
@@ -67,10 +67,12 @@ class DetAE(nn.Module):
 
         self.decoder = nn.Sequential(*modules)
         
-        if self.loss_type == 'ce':
-            self.final_activation = nn.Sigmoid()
-        else:
-            self.final_activation = nn.Tanh()
+        # if self.loss_type == 'ce':
+        #     self.final_activation = nn.Sigmoid()
+        # else:
+        #     self.final_activation = nn.Tanh()
+        self.final_activation = nn.Sigmoid()
+
         self.final_layer = nn.Sequential(
                             nn.ConvTranspose2d(hidden_dims[-1],
                                                hidden_dims[-1],
@@ -98,7 +100,7 @@ class DetAE(nn.Module):
 
     def decode(self, z: Tensor) -> Tensor:
         result = self.decoder_input(z)
-        result = result.view(-1, 512, 1, 1)
+        result = result.view(-1, self.hidden_dims[-1], 1, 1)
         result = self.decoder(result)
         result = self.final_layer(result)
         return result
