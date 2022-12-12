@@ -67,11 +67,11 @@ class DetAE(nn.Module):
 
         self.decoder = nn.Sequential(*modules)
         
-        # if self.loss_type == 'ce':
-        #     self.final_activation = nn.Sigmoid()
-        # else:
-        #     self.final_activation = nn.Tanh()
-        self.final_activation = nn.Sigmoid()
+        if self.loss_type == 'ce':
+            self.final_activation = nn.Sigmoid()
+        else:
+            self.final_activation = nn.Tanh()
+        # self.final_activation = nn.Sigmoid()
 
         self.final_layer = nn.Sequential(
                             nn.ConvTranspose2d(hidden_dims[-1],

@@ -38,8 +38,8 @@ trainer_params:
   max_epochs: 100
 
 logging_params:
-  save_dir: "../logs/"
-  model_dir: '../checkpoints/'
-  sample_dir: "../results/"
+  save_dir: "./logs/"
+  model_dir: './checkpoints/'
+  sample_dir: "./results/"
   manual_seed: 1265
   name: 'CIFAR_CNNVAE'

@@ -3,7 +3,8 @@ model_params:
   diff_name: 'SN_Model'
   in_channels: 3
   latent_dim: 128
-  loss_type: 'ce'
+  hidden_dims: [16, 32, 32, 32, 16] # [32, 64, 128, 256, 512]
+  loss_type: 'mse'
   gamma: 10.0
   max_capacity: 25
   Capacity_max_iter: 10000
@@ -38,8 +39,8 @@ trainer_params:
   max_epochs: 100
 
 logging_params:
-  save_dir: "../logs/"
-  model_dir: '../checkpoints/'
-  sample_dir: "../results/"
+  save_dir: "./logs/"
+  model_dir: './checkpoints/'
+  sample_dir: "./results/"
   manual_seed: 1265
   name: 'CIFAR_CDetAE'
